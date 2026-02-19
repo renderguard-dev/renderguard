@@ -500,6 +500,28 @@
       opacity: 0.5;
     }
 
+    .form-status {
+      padding: 12px 16px;
+      border-radius: 8px;
+      font-size: 0.9rem;
+      font-weight: 600;
+      display: none;
+    }
+
+    .form-status.success {
+      display: block;
+      background: rgba(45, 212, 191, 0.1);
+      border: 1px solid rgba(45, 212, 191, 0.3);
+      color: var(--accent-teal);
+    }
+
+    .form-status.error {
+      display: block;
+      background: rgba(240, 136, 62, 0.1);
+      border: 1px solid rgba(240, 136, 62, 0.3);
+      color: #f0883e;
+    }
+
     .contact-alt {
       margin-top: 24px;
       font-size: 0.9rem;
@@ -860,6 +882,7 @@ items.<span class="fn">map</span>((item) =&gt; &lt;<span class="comp">Item</span
             <textarea id="message" name="message" placeholder="What's on your mind?" required></textarea>
           </div>
           <button type="submit" class="btn btn-primary">Send Message</button>
+          <div class="form-status" id="form-status"></div>
         </form>
         <p class="contact-alt">Or email us directly at <a href="mailto:hello@renderguard.dev">hello@renderguard.dev</a></p>
       </div>
@@ -890,6 +913,39 @@ items.<span class="fn">map</span>((item) =&gt; &lt;<span class="comp">Item</span
     }, { threshold: 0.1 });
 
     document.querySelectorAll('.fade-in').forEach(el => observer.observe(el));
+
+    const form = document.querySelector('.contact-form');
+    const status = document.getElementById('form-status');
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const btn = form.querySelector('button[type="submit"]');
+      btn.disabled = true;
+      btn.textContent = 'Sending...';
+      status.className = 'form-status';
+      status.style.display = 'none';
+
+      try {
+        const res = await fetch('/', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+          body: new URLSearchParams(new FormData(form)).toString()
+        });
+        if (res.ok) {
+          status.textContent = 'Message sent! We\u2019ll get back to you soon.';
+          status.className = 'form-status success';
+          form.reset();
+        } else {
+          throw new Error('Server returned ' + res.status);
+        }
+      } catch (err) {
+        status.textContent = 'Something went wrong. Please try again or email us directly.';
+        status.className = 'form-status error';
+      } finally {
+        btn.disabled = false;
+        btn.textContent = 'Send Message';
+      }
+    });
   </script>
 
 </body>
