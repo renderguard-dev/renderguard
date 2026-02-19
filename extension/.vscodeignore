@@ -1,0 +1,7 @@
+src/**
+tsconfig.json
+.gitignore
+node_modules/**
+!node_modules/@babel/parser/**
+!node_modules/@babel/traverse/**
+!node_modules/@babel/types/**

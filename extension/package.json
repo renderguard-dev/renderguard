@@ -1,0 +1,101 @@
+{
+  "name": "renderguard",
+  "displayName": "RenderGuard",
+  "description": "Detect and fix unnecessary React re-renders — inline objects, missing memo, unstable deps, and more.",
+  "version": "0.1.0",
+  "publisher": "renderguard-dev",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/renderguard-dev/renderguard"
+  },
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": [
+    "Linters",
+    "Programming Languages"
+  ],
+  "keywords": [
+    "react",
+    "re-render",
+    "performance",
+    "memo",
+    "optimization"
+  ],
+  "activationEvents": [
+    "onLanguage:javascript",
+    "onLanguage:javascriptreact",
+    "onLanguage:typescript",
+    "onLanguage:typescriptreact"
+  ],
+  "main": "./dist/extension.js",
+  "files": [
+    "dist",
+    "LICENSE"
+  ],
+  "contributes": {
+    "configuration": {
+      "title": "RenderGuard",
+      "properties": {
+        "renderguard.enable": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable or disable RenderGuard diagnostics."
+        },
+        "renderguard.severity": {
+          "type": "string",
+          "default": "warning",
+          "enum": [
+            "error",
+            "warning",
+            "information",
+            "hint"
+          ],
+          "description": "Severity level for RenderGuard diagnostics."
+        },
+        "renderguard.enableCodeLens": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show render risk scores above components."
+        },
+        "renderguard.patterns": {
+          "type": "object",
+          "default": {
+            "inlineObjects": true,
+            "inlineFunctions": true,
+            "missingMemo": true,
+            "unstableKeys": true,
+            "unstableDeps": true,
+            "broadContext": true
+          },
+          "description": "Enable or disable specific pattern detectors."
+        }
+      }
+    }
+  },
+  "scripts": {
+    "build": "esbuild ./src/extension.ts --bundle --outfile=dist/extension.js --external:vscode --format=cjs --platform=node --sourcemap",
+    "watch": "npm run build -- --watch",
+    "vscode:prepublish": "npm run build",
+    "package": "vsce package",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "devDependencies": {
+    "@types/babel__traverse": "^7.20.6",
+    "@types/node": "^22.13.4",
+    "@types/vscode": "^1.85.0",
+    "@vscode/vsce": "^3.2.2",
+    "esbuild": "^0.25.0",
+    "eslint": "^9.20.1",
+    "tsx": "^4.19.3",
+    "typescript": "^5.7.3",
+    "vitest": "^4.0.18"
+  },
+  "dependencies": {
+    "@babel/parser": "^7.26.7",
+    "@babel/traverse": "^7.26.7",
+    "@babel/types": "^7.26.7"
+  }
+}
