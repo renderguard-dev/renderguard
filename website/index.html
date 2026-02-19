@@ -1,0 +1,896 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>RenderGuard — Detect and fix unnecessary React re-renders</title>
+  <meta name="description" content="RenderGuard is a VS Code extension that statically analyzes your React codebase and flags components at risk of unnecessary re-renders. No runtime profiling, no manual setup.">
+  <meta property="og:title" content="RenderGuard — Catch React re-render issues at dev time">
+  <meta property="og:description" content="Static analysis for React performance. 9 pattern detectors, inline diagnostics, quick fixes, and a component tree sidebar.">
+  <meta property="og:type" content="website">
+  <link rel="icon" href="logo.png" type="image/png">
+  <style>
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+    :root {
+      --bg: #0d1117;
+      --bg-card: #161b22;
+      --bg-code: #1c2128;
+      --border: #30363d;
+      --text: #e6edf3;
+      --text-muted: #8b949e;
+      --accent-blue: #4a9eff;
+      --accent-teal: #2dd4bf;
+      --accent-gradient: linear-gradient(135deg, #4a9eff, #2dd4bf);
+      --accent-gradient-h: linear-gradient(90deg, #4a9eff, #2dd4bf);
+      --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+      --font-mono: 'SF Mono', 'Cascadia Code', 'Fira Code', Consolas, monospace;
+      --max-w: 1120px;
+      --radius: 12px;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: var(--font-sans);
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    a { color: var(--accent-blue); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    .container { max-width: var(--max-w); margin: 0 auto; padding: 0 24px; }
+
+    /* ── Nav ─────────────────────────────────────── */
+    nav {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 100;
+      background: rgba(13, 17, 23, 0.85);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border);
+    }
+
+    nav .container {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      height: 64px;
+    }
+
+    .nav-brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-weight: 700;
+      font-size: 1.15rem;
+      color: var(--text);
+    }
+
+    .nav-brand img { width: 32px; height: 32px; border-radius: 6px; }
+
+    .nav-links {
+      display: flex;
+      align-items: center;
+      gap: 28px;
+      list-style: none;
+    }
+
+    .nav-links a {
+      color: var(--text-muted);
+      font-size: 0.9rem;
+      font-weight: 500;
+      transition: color 0.2s;
+    }
+
+    .nav-links a:hover { color: var(--text); text-decoration: none; }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 22px;
+      border-radius: 8px;
+      font-weight: 600;
+      font-size: 0.95rem;
+      border: none;
+      cursor: pointer;
+      transition: transform 0.15s, box-shadow 0.15s;
+    }
+
+    .btn:hover { transform: translateY(-1px); text-decoration: none; }
+
+    .btn-primary {
+      background: var(--accent-gradient);
+      color: #000;
+      font-weight: 700;
+    }
+
+    .btn-primary:hover { box-shadow: 0 4px 20px rgba(74, 158, 255, 0.3); }
+
+    .btn-secondary {
+      background: var(--bg-card);
+      color: var(--text);
+      border: 1px solid var(--border);
+    }
+
+    .btn-secondary:hover { border-color: var(--accent-blue); box-shadow: 0 4px 20px rgba(74, 158, 255, 0.1); }
+
+    .nav-cta { padding: 8px 18px; font-size: 0.85rem; color: #000 !important; }
+
+    /* ── Hero ────────────────────────────────────── */
+    .hero {
+      padding: 160px 0 100px;
+      text-align: center;
+    }
+
+    .hero-badge {
+      display: inline-block;
+      padding: 6px 16px;
+      border-radius: 20px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: var(--accent-teal);
+      border: 1px solid rgba(45, 212, 191, 0.3);
+      background: rgba(45, 212, 191, 0.08);
+      margin-bottom: 24px;
+    }
+
+    .hero h1 {
+      font-size: clamp(2.2rem, 5vw, 3.5rem);
+      font-weight: 800;
+      line-height: 1.15;
+      max-width: 780px;
+      margin: 0 auto 20px;
+    }
+
+    .hero h1 .gradient-text {
+      background: var(--accent-gradient);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .hero p {
+      font-size: 1.2rem;
+      color: var(--text-muted);
+      max-width: 600px;
+      margin: 0 auto 40px;
+    }
+
+    .hero-buttons { display: flex; gap: 16px; justify-content: center; flex-wrap: wrap; }
+
+    .hero-code {
+      max-width: 640px;
+      margin: 60px auto 0;
+      background: var(--bg-code);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+      text-align: left;
+    }
+
+    .hero-code-bar {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .hero-code-dot {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background: var(--border);
+    }
+
+    .hero-code-dot:nth-child(1) { background: #ff5f57; }
+    .hero-code-dot:nth-child(2) { background: #febc2e; }
+    .hero-code-dot:nth-child(3) { background: #28c840; }
+
+    .hero-code-filename {
+      font-size: 0.78rem;
+      color: var(--text-muted);
+      font-family: var(--font-mono);
+      margin-left: 8px;
+    }
+
+    .hero-code pre {
+      padding: 20px;
+      font-family: var(--font-mono);
+      font-size: 0.85rem;
+      line-height: 1.7;
+      overflow-x: auto;
+    }
+
+    .hero-code .kw { color: #ff7b72; }
+    .hero-code .fn { color: #d2a8ff; }
+    .hero-code .str { color: #a5d6ff; }
+    .hero-code .comp { color: #7ee787; }
+    .hero-code .attr { color: #79c0ff; }
+    .hero-code .cm { color: #8b949e; font-style: italic; }
+    .hero-code .squiggly {
+      text-decoration: wavy underline;
+      text-decoration-color: #f0883e;
+      text-underline-offset: 4px;
+    }
+
+    /* ── Section base ───────────────────────────── */
+    section { padding: 100px 0; }
+
+    .section-label {
+      display: inline-block;
+      font-size: 0.8rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+      background: var(--accent-gradient);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      margin-bottom: 12px;
+    }
+
+    .section-title {
+      font-size: clamp(1.8rem, 3.5vw, 2.5rem);
+      font-weight: 800;
+      margin-bottom: 16px;
+    }
+
+    .section-subtitle {
+      font-size: 1.1rem;
+      color: var(--text-muted);
+      max-width: 600px;
+      margin-bottom: 56px;
+    }
+
+    /* ── Problem ─────────────────────────────────── */
+    .problem-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 24px;
+    }
+
+    .problem-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 32px;
+    }
+
+    .problem-card .icon {
+      width: 48px;
+      height: 48px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.4rem;
+      margin-bottom: 20px;
+      background: rgba(74, 158, 255, 0.1);
+    }
+
+    .problem-card h3 {
+      font-size: 1.15rem;
+      font-weight: 700;
+      margin-bottom: 10px;
+    }
+
+    .problem-card p { color: var(--text-muted); font-size: 0.95rem; }
+
+    /* ── Features ────────────────────────────────── */
+    .features-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 24px;
+    }
+
+    .feature-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 32px;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+
+    .feature-card:hover {
+      border-color: var(--accent-blue);
+      box-shadow: 0 0 30px rgba(74, 158, 255, 0.06);
+    }
+
+    .feature-icon {
+      font-size: 1.5rem;
+      margin-bottom: 16px;
+      display: block;
+    }
+
+    .feature-card h3 {
+      font-size: 1.05rem;
+      font-weight: 700;
+      margin-bottom: 8px;
+    }
+
+    .feature-card p { color: var(--text-muted); font-size: 0.9rem; }
+
+    /* ── Detectors ───────────────────────────────── */
+    .detectors-tier {
+      margin-bottom: 48px;
+    }
+
+    .detectors-tier:last-child { margin-bottom: 0; }
+
+    .tier-label {
+      font-size: 0.85rem;
+      font-weight: 700;
+      color: var(--accent-teal);
+      margin-bottom: 20px;
+      padding-bottom: 10px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .detectors-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+      gap: 20px;
+    }
+
+    .detector-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+    }
+
+    .detector-card h4 {
+      padding: 16px 20px 12px;
+      font-size: 0.95rem;
+      font-weight: 700;
+    }
+
+    .detector-code {
+      padding: 0 20px 16px;
+    }
+
+    .detector-code pre {
+      background: var(--bg-code);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 14px 16px;
+      font-family: var(--font-mono);
+      font-size: 0.78rem;
+      line-height: 1.65;
+      overflow-x: auto;
+    }
+
+    .detector-code .bad { color: #f0883e; }
+    .detector-code .good { color: #7ee787; }
+    .detector-code .kw { color: #ff7b72; }
+    .detector-code .fn { color: #d2a8ff; }
+    .detector-code .str { color: #a5d6ff; }
+    .detector-code .comp { color: #7ee787; }
+    .detector-code .cm { color: #8b949e; font-style: italic; }
+
+    /* ── Install ─────────────────────────────────── */
+    .install-options {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 24px;
+      max-width: 800px;
+    }
+
+    .install-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 36px 32px;
+    }
+
+    .install-card h3 {
+      font-size: 1.1rem;
+      font-weight: 700;
+      margin-bottom: 12px;
+    }
+
+    .install-card p {
+      color: var(--text-muted);
+      font-size: 0.9rem;
+      margin-bottom: 20px;
+    }
+
+    .install-terminal {
+      background: var(--bg-code);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 14px 18px;
+      font-family: var(--font-mono);
+      font-size: 0.82rem;
+      color: var(--text-muted);
+      overflow-x: auto;
+    }
+
+    .install-terminal .prompt { color: var(--accent-teal); }
+
+    /* ── Footer ──────────────────────────────────── */
+    footer {
+      padding: 40px 0;
+      border-top: 1px solid var(--border);
+    }
+
+    footer .container {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 16px;
+    }
+
+    footer .copyright {
+      color: var(--text-muted);
+      font-size: 0.85rem;
+    }
+
+    footer .footer-links {
+      display: flex;
+      gap: 24px;
+      list-style: none;
+    }
+
+    footer .footer-links a {
+      color: var(--text-muted);
+      font-size: 0.85rem;
+    }
+
+    footer .footer-links a:hover { color: var(--text); }
+
+    /* ── Contact ─────────────────────────────────── */
+    .contact-wrapper {
+      max-width: 560px;
+    }
+
+    .contact-form {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .form-group label {
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: var(--text-muted);
+    }
+
+    .form-group input,
+    .form-group textarea {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 12px 16px;
+      font-family: var(--font-sans);
+      font-size: 0.95rem;
+      color: var(--text);
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    .form-group input:focus,
+    .form-group textarea:focus {
+      border-color: var(--accent-blue);
+    }
+
+    .form-group textarea {
+      resize: vertical;
+      min-height: 120px;
+    }
+
+    .form-group input::placeholder,
+    .form-group textarea::placeholder {
+      color: var(--text-muted);
+      opacity: 0.5;
+    }
+
+    .contact-alt {
+      margin-top: 24px;
+      font-size: 0.9rem;
+      color: var(--text-muted);
+    }
+
+    .contact-alt a { color: var(--accent-blue); }
+
+    /* ── Animations ──────────────────────────────── */
+    .fade-in {
+      opacity: 0;
+      transform: translateY(24px);
+      transition: opacity 0.6s ease, transform 0.6s ease;
+    }
+
+    .fade-in.visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    /* ── Responsive ──────────────────────────────── */
+    @media (max-width: 768px) {
+      .nav-links .nav-link-item { display: none; }
+      .problem-grid, .features-grid { grid-template-columns: 1fr; }
+      .detectors-grid { grid-template-columns: 1fr; }
+      .install-options { grid-template-columns: 1fr; }
+      .hero { padding: 120px 0 60px; }
+      section { padding: 60px 0; }
+    }
+
+    @media (max-width: 480px) {
+      .hero-buttons { flex-direction: column; align-items: center; }
+      .btn { width: 100%; justify-content: center; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Nav -->
+  <nav>
+    <div class="container">
+      <a href="#" class="nav-brand">
+        <img src="logo.png" alt="RenderGuard logo" width="32" height="32">
+        RenderGuard
+      </a>
+      <ul class="nav-links">
+        <li class="nav-link-item"><a href="#features">Features</a></li>
+        <li class="nav-link-item"><a href="#detectors">Detectors</a></li>
+        <li class="nav-link-item"><a href="#install">Install</a></li>
+        <li class="nav-link-item"><a href="#contact">Contact</a></li>
+        <li class="nav-link-item"><a href="https://github.com/renderguard-dev/renderguard" target="_blank" rel="noopener">GitHub</a></li>
+        <li><a href="https://marketplace.visualstudio.com/items?itemName=renderguard-dev.renderguard" class="btn btn-primary nav-cta" target="_blank" rel="noopener">Install Extension</a></li>
+      </ul>
+    </div>
+  </nav>
+
+  <!-- Hero -->
+  <header class="hero">
+    <div class="container">
+      <div class="hero-badge">Now available on the VS Code Marketplace</div>
+      <h1>
+        Detect and fix<br>
+        <span class="gradient-text">unnecessary React re-renders</span><br>
+        before they ship.
+      </h1>
+      <p>Static analysis for React performance. 9 pattern detectors, inline diagnostics, quick fixes, and a component tree sidebar — right in your editor.</p>
+      <div class="hero-buttons">
+        <a href="https://marketplace.visualstudio.com/items?itemName=renderguard-dev.renderguard" class="btn btn-primary" target="_blank" rel="noopener">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          Install for VS Code
+        </a>
+        <a href="https://github.com/renderguard-dev/renderguard" class="btn btn-secondary" target="_blank" rel="noopener">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z"/></svg>
+          View on GitHub
+        </a>
+      </div>
+
+      <div class="hero-code fade-in">
+        <div class="hero-code-bar">
+          <span class="hero-code-dot"></span>
+          <span class="hero-code-dot"></span>
+          <span class="hero-code-dot"></span>
+          <span class="hero-code-filename">UserList.tsx</span>
+        </div>
+        <pre><span class="kw">const</span> <span class="comp">UserList</span> = ({ users }) =&gt; {
+  <span class="kw">const</span> sorted = <span class="squiggly">users.<span class="fn">sort</span>((a, b) =&gt; a.name.<span class="fn">localeCompare</span>(b.name))</span>;
+  <span class="cm">         ⚠ Unmemoized derived state — wrap in useMemo</span>
+
+  <span class="kw">return</span> (
+    &lt;<span class="comp">div</span>&gt;
+      {sorted.<span class="fn">map</span>((user, <span class="squiggly">index</span>) =&gt; (
+        <span class="cm">              ⚠ Array index as key</span>
+        &lt;<span class="comp">UserCard</span>
+          <span class="attr">key</span>={index}
+          <span class="attr">onClick</span>={<span class="squiggly">() =&gt; <span class="fn">selectUser</span>(user.id)</span>}
+          <span class="cm">         ⚠ Inline function — wrap in useCallback</span>
+        /&gt;
+      ))}
+    &lt;/<span class="comp">div</span>&gt;
+  );
+};</pre>
+      </div>
+    </div>
+  </header>
+
+  <!-- Problem -->
+  <section id="problem" class="fade-in">
+    <div class="container">
+      <div class="section-label">The Problem</div>
+      <h2 class="section-title">Re-renders are the #1 React performance killer</h2>
+      <p class="section-subtitle">Existing tools only catch them at runtime. RenderGuard catches them at development time.</p>
+
+      <div class="problem-grid">
+        <div class="problem-card">
+          <div class="icon">&#9889;</div>
+          <h3>Easy to introduce</h3>
+          <p>An inline object, a missing dependency array, an arrow function in JSX — one line is all it takes to trigger cascading re-renders.</p>
+        </div>
+        <div class="problem-card">
+          <div class="icon">&#128269;</div>
+          <h3>Hard to spot in review</h3>
+          <p>Performance anti-patterns look like normal code. They slip through PRs because they're syntactically correct and functionally fine.</p>
+        </div>
+        <div class="problem-card">
+          <div class="icon">&#128295;</div>
+          <h3>Painful to debug at runtime</h3>
+          <p>React DevTools Profiler and <code>why-did-you-render</code> require running the app, reproducing the issue, and tracing through component trees.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Features -->
+  <section id="features" class="fade-in">
+    <div class="container">
+      <div class="section-label">Features</div>
+      <h2 class="section-title">Everything you need, built into your editor</h2>
+      <p class="section-subtitle">No browser extensions, no runtime overhead, no configuration required.</p>
+
+      <div class="features-grid">
+        <div class="feature-card">
+          <span class="feature-icon">&#9888;&#65039;</span>
+          <h3>Inline Diagnostics</h3>
+          <p>Squiggly underlines on every detected issue, just like a linter. Hover for details and suggested fixes.</p>
+        </div>
+        <div class="feature-card">
+          <span class="feature-icon">&#128200;</span>
+          <h3>CodeLens Risk Scores</h3>
+          <p>Render risk scores displayed above each component — Low, Medium, or High — so you know where to focus.</p>
+        </div>
+        <div class="feature-card">
+          <span class="feature-icon">&#9889;</span>
+          <h3>Quick Fixes</h3>
+          <p>One-click wrapping with useMemo and useCallback via Code Actions. Fix issues without leaving your flow.</p>
+        </div>
+        <div class="feature-card">
+          <span class="feature-icon">&#127795;</span>
+          <h3>Component Tree Sidebar</h3>
+          <p>Activity bar panel showing all components in the file, color-coded by risk, with expandable issue lists.</p>
+        </div>
+        <div class="feature-card">
+          <span class="feature-icon">&#9881;&#65039;</span>
+          <h3>Fully Configurable</h3>
+          <p>Enable or disable individual pattern detectors. Set severity to error, warning, info, or hint.</p>
+        </div>
+        <div class="feature-card">
+          <span class="feature-icon">&#128640;</span>
+          <h3>Fast</h3>
+          <p>Static AST analysis via Babel — no type-checking overhead, no compilation step. Debounced on every keystroke.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Detectors -->
+  <section id="detectors" class="fade-in">
+    <div class="container">
+      <div class="section-label">9 Pattern Detectors</div>
+      <h2 class="section-title">Catches what code review misses</h2>
+      <p class="section-subtitle">Two tiers of analysis — from per-statement checks to data flow analysis across components.</p>
+
+      <div class="detectors-tier">
+        <div class="tier-label">Tier 1 — Per-Statement Analysis</div>
+        <div class="detectors-grid">
+
+          <div class="detector-card">
+            <h4>Inline Objects &amp; Arrays</h4>
+            <div class="detector-code">
+              <pre><span class="cm">// Flagged: new reference every render</span>
+&lt;<span class="comp">Child</span> <span class="attr">style</span>={<span class="bad">{ color: 'red' }</span>} /&gt;
+
+<span class="cm">// Safe</span>
+<span class="kw">const</span> style = <span class="fn">useMemo</span>(() =&gt; (<span class="good">{ color: 'red' }</span>), []);
+&lt;<span class="comp">Child</span> <span class="attr">style</span>={style} /&gt;</pre>
+            </div>
+          </div>
+
+          <div class="detector-card">
+            <h4>Inline Functions</h4>
+            <div class="detector-code">
+              <pre><span class="cm">// Flagged: new function every render</span>
+&lt;<span class="comp">Button</span> <span class="attr">onClick</span>={<span class="bad">() =&gt; handleClick(id)</span>} /&gt;
+
+<span class="cm">// Safe</span>
+<span class="kw">const</span> onClick = <span class="fn">useCallback</span>(<span class="good">() =&gt; handleClick(id)</span>, [id]);
+&lt;<span class="comp">Button</span> <span class="attr">onClick</span>={onClick} /&gt;</pre>
+            </div>
+          </div>
+
+          <div class="detector-card">
+            <h4>Missing React.memo</h4>
+            <div class="detector-code">
+              <pre><span class="cm">// Flagged: re-renders when parent does</span>
+<span class="kw">const</span> <span class="comp">UserCard</span> = (<span class="bad">props</span>) =&gt; {
+  <span class="kw">return</span> &lt;<span class="comp">span</span>&gt;{props.name}&lt;/<span class="comp">span</span>&gt;;
+};
+
+<span class="cm">// Safe</span>
+<span class="kw">const</span> <span class="comp">UserCard</span> = React.<span class="fn">memo</span>((<span class="good">props</span>) =&gt; {
+  <span class="kw">return</span> &lt;<span class="comp">span</span>&gt;{props.name}&lt;/<span class="comp">span</span>&gt;;
+});</pre>
+            </div>
+          </div>
+
+          <div class="detector-card">
+            <h4>Array Index as Key</h4>
+            <div class="detector-code">
+              <pre><span class="cm">// Flagged: causes remounts on reorder</span>
+items.<span class="fn">map</span>((item, i) =&gt; &lt;<span class="comp">Item</span> <span class="attr">key</span>={<span class="bad">i</span>} /&gt;)
+
+<span class="cm">// Safe</span>
+items.<span class="fn">map</span>((item) =&gt; &lt;<span class="comp">Item</span> <span class="attr">key</span>={<span class="good">item.id</span>} /&gt;)</pre>
+            </div>
+          </div>
+
+          <div class="detector-card">
+            <h4>Unstable Hook Dependencies</h4>
+            <div class="detector-code">
+              <pre><span class="cm">// Flagged: missing deps defeats memoization</span>
+<span class="kw">const</span> val = <span class="fn">useMemo</span>(() =&gt; <span class="fn">compute</span>(a, b)<span class="bad"></span>);
+
+<span class="cm">// Safe</span>
+<span class="kw">const</span> val = <span class="fn">useMemo</span>(() =&gt; <span class="fn">compute</span>(a, b), <span class="good">[a, b]</span>);</pre>
+            </div>
+          </div>
+
+          <div class="detector-card">
+            <h4>Broad Context Consumption</h4>
+            <div class="detector-code">
+              <pre><span class="cm">// Flagged: subscribes to ALL changes</span>
+<span class="kw">const</span> ctx = <span class="fn">useContext</span>(<span class="bad">AppContext</span>);
+
+<span class="cm">// Safe: pick only what's needed</span>
+<span class="kw">const</span> { theme } = <span class="fn">useContext</span>(<span class="good">AppContext</span>);</pre>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <div class="detectors-tier">
+        <div class="tier-label">Tier 2 — Data Flow Analysis</div>
+        <div class="detectors-grid">
+
+          <div class="detector-card">
+            <h4>Unmemoized Derived State</h4>
+            <div class="detector-code">
+              <pre><span class="cm">// Flagged: recalculates every render</span>
+<span class="kw">const</span> filtered = <span class="bad">items.<span class="fn">filter</span>(i =&gt; i.active)</span>;
+
+<span class="cm">// Safe</span>
+<span class="kw">const</span> filtered = <span class="fn">useMemo</span>(
+  <span class="good">() =&gt; items.<span class="fn">filter</span>(i =&gt; i.active)</span>, [items]
+);</pre>
+            </div>
+          </div>
+
+          <div class="detector-card">
+            <h4>Props Drilling</h4>
+            <div class="detector-code">
+              <pre><span class="cm">// Flagged: passes through without use</span>
+<span class="kw">const</span> <span class="comp">Layout</span> = ({ <span class="bad">theme</span> }) =&gt;
+  &lt;<span class="comp">Sidebar</span> <span class="attr">theme</span>={theme} /&gt;;
+
+<span class="cm">// Not flagged: used in own logic</span>
+<span class="kw">const</span> <span class="comp">Layout</span> = ({ <span class="good">theme</span> }) =&gt;
+  &lt;<span class="comp">div</span> <span class="attr">className</span>={theme}&gt;&lt;/<span class="comp">div</span>&gt;;</pre>
+            </div>
+          </div>
+
+          <div class="detector-card">
+            <h4>State Lifted Too High</h4>
+            <div class="detector-code">
+              <pre><span class="cm">// Flagged: state only used by one child</span>
+<span class="kw">const</span> <span class="comp">Parent</span> = () =&gt; {
+  <span class="kw">const</span> [count, setCount] = <span class="fn">useState</span>(<span class="bad">0</span>);
+  <span class="kw">return</span> &lt;<span class="comp">Counter</span> <span class="attr">count</span>={count}
+    <span class="attr">setCount</span>={setCount} /&gt;;
+};</pre>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Install -->
+  <section id="install" class="fade-in">
+    <div class="container">
+      <div class="section-label">Get Started</div>
+      <h2 class="section-title">Install in seconds</h2>
+      <p class="section-subtitle">Works with VS Code and Cursor. Zero configuration needed.</p>
+
+      <div class="install-options">
+        <div class="install-card">
+          <h3>From Marketplace</h3>
+          <p>One click install — search "RenderGuard" in the extensions panel or use the button below.</p>
+          <a href="https://marketplace.visualstudio.com/items?itemName=renderguard-dev.renderguard" class="btn btn-primary" target="_blank" rel="noopener">
+            Install Extension
+          </a>
+        </div>
+        <div class="install-card">
+          <h3>From Source</h3>
+          <p>Clone the repo and run in development mode with F5.</p>
+          <div class="install-terminal">
+            <span class="prompt">$</span> git clone https://github.com/renderguard-dev/renderguard.git<br>
+            <span class="prompt">$</span> cd renderguard/extension<br>
+            <span class="prompt">$</span> npm install<br>
+            <span class="prompt">$</span> npm run build
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Contact -->
+  <section id="contact" class="fade-in">
+    <div class="container">
+      <div class="section-label">Contact</div>
+      <h2 class="section-title">Get in touch</h2>
+      <p class="section-subtitle">Have a question, feature request, or found a bug? We'd love to hear from you.</p>
+
+      <div class="contact-wrapper">
+        <form class="contact-form" name="contact" method="POST" data-netlify="true" netlify-honeypot="bot-field">
+          <input type="hidden" name="form-name" value="contact">
+          <p style="display:none"><label>Don't fill this out: <input name="bot-field"></label></p>
+          <div class="form-group">
+            <label for="name">Name</label>
+            <input type="text" id="name" name="name" placeholder="Your name" required>
+          </div>
+          <div class="form-group">
+            <label for="email">Email</label>
+            <input type="email" id="email" name="email" placeholder="you@example.com" required>
+          </div>
+          <div class="form-group">
+            <label for="message">Message</label>
+            <textarea id="message" name="message" placeholder="What's on your mind?" required></textarea>
+          </div>
+          <button type="submit" class="btn btn-primary">Send Message</button>
+        </form>
+        <p class="contact-alt">Or email us directly at <a href="mailto:hello@renderguard.dev">hello@renderguard.dev</a></p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer>
+    <div class="container">
+      <span class="copyright">&copy; 2026 RenderGuard. MIT License.</span>
+      <ul class="footer-links">
+        <li><a href="https://github.com/renderguard-dev/renderguard" target="_blank" rel="noopener">GitHub</a></li>
+        <li><a href="https://marketplace.visualstudio.com/items?itemName=renderguard-dev.renderguard" target="_blank" rel="noopener">Marketplace</a></li>
+        <li><a href="https://github.com/renderguard-dev/renderguard/blob/main/LICENSE" target="_blank" rel="noopener">License</a></li>
+        <li><a href="privacy.html">Privacy</a></li>
+        <li><a href="mailto:hello@renderguard.dev">hello@renderguard.dev</a></li>
+      </ul>
+    </div>
+  </footer>
+
+  <script>
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          entry.target.classList.add('visible');
+        }
+      });
+    }, { threshold: 0.1 });
+
+    document.querySelectorAll('.fade-in').forEach(el => observer.observe(el));
+  </script>
+
+</body>
+</html>
