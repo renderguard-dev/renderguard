@@ -40,6 +40,9 @@ export function patternDisplayName(id: PatternId): string {
     unstableKeys: "Unstable Key",
     unstableDeps: "Unstable Dependencies",
     broadContext: "Broad Context Consumer",
+    derivedState: "Unmemoized Derived State",
+    propsDrilling: "Props Drilling",
+    liftedState: "State Lifted Too High",
   };
   return names[id];
 }

@@ -35,6 +35,43 @@
     "LICENSE"
   ],
   "contributes": {
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "renderguard",
+          "title": "RenderGuard",
+          "icon": "media/icon.svg"
+        }
+      ]
+    },
+    "views": {
+      "renderguard": [
+        {
+          "id": "renderguard.componentTree",
+          "name": "Component Risk"
+        }
+      ]
+    },
+    "commands": [
+      {
+        "command": "renderguard.refreshTree",
+        "title": "RenderGuard: Refresh Component Tree",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "renderguard.analyzeFile",
+        "title": "RenderGuard: Analyze Current File"
+      }
+    ],
+    "menus": {
+      "view/title": [
+        {
+          "command": "renderguard.refreshTree",
+          "when": "view == renderguard.componentTree",
+          "group": "navigation"
+        }
+      ]
+    },
     "configuration": {
       "title": "RenderGuard",
       "properties": {
@@ -67,7 +104,10 @@
             "missingMemo": true,
             "unstableKeys": true,
             "unstableDeps": true,
-            "broadContext": true
+            "broadContext": true,
+            "derivedState": true,
+            "propsDrilling": true,
+            "liftedState": true
           },
           "description": "Enable or disable specific pattern detectors."
         }

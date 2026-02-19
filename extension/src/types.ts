@@ -20,7 +20,10 @@ export type PatternId =
   | "missingMemo"
   | "unstableKeys"
   | "unstableDeps"
-  | "broadContext";
+  | "broadContext"
+  | "derivedState"
+  | "propsDrilling"
+  | "liftedState";
 
 export interface ComponentInfo {
   name: string;

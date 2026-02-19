@@ -2,6 +2,7 @@ import * as vscode from "vscode";
 import { RenderGuardAnalyzer } from "./analyzer";
 import { RenderGuardCodeLensProvider } from "./codelens";
 import { RenderGuardCodeActionProvider } from "./codeactions";
+import { RenderGuardTreeProvider } from "./treeview";
 import { issueToDiagnostic } from "./utils/diagnostics";
 import type { RenderGuardConfig, PatternId, ComponentInfo } from "./types";
 
@@ -19,6 +20,7 @@ export function activate(context: vscode.ExtensionContext): void {
 
   const codeLensProvider = new RenderGuardCodeLensProvider(analyzer, config);
   const codeActionProvider = new RenderGuardCodeActionProvider();
+  const treeProvider = new RenderGuardTreeProvider();
 
   const selector = SUPPORTED_LANGUAGES.map((lang) => ({
     language: lang,
@@ -30,23 +32,28 @@ export function activate(context: vscode.ExtensionContext): void {
     vscode.languages.registerCodeLensProvider(selector, codeLensProvider),
     vscode.languages.registerCodeActionsProvider(selector, codeActionProvider, {
       providedCodeActionKinds: [vscode.CodeActionKind.QuickFix],
-    })
+    }),
+    vscode.window.registerTreeDataProvider("renderguard.componentTree", treeProvider)
   );
 
   const analyzeDocument = (document: vscode.TextDocument) => {
     if (!config.enable) {
       diagnostics.delete(document.uri);
+      treeProvider.clear();
       return;
     }
     if (!SUPPORTED_LANGUAGES.includes(document.languageId)) return;
 
-    const { issues } = analyzer.analyze(document, config.patterns);
+    const { issues, components } = analyzer.analyze(document, config.patterns);
     diagnostics.set(
       document.uri,
       issues.map((issue) => issueToDiagnostic(issue, config.severity))
     );
     codeActionProvider.updateSeverity(config.severity);
     codeActionProvider.updateIssues(document.uri.toString(), issues);
+
+    const fileName = document.uri.path.split("/").pop() ?? document.uri.path;
+    treeProvider.refresh(fileName, components);
   };
 
   let analyzeTimeout: ReturnType<typeof setTimeout> | undefined;
@@ -60,7 +67,11 @@ export function activate(context: vscode.ExtensionContext): void {
     vscode.workspace.onDidSaveTextDocument(analyzeDocument),
     vscode.workspace.onDidChangeTextDocument((e) => debouncedAnalyze(e.document)),
     vscode.window.onDidChangeActiveTextEditor((editor) => {
-      if (editor) analyzeDocument(editor.document);
+      if (editor) {
+        analyzeDocument(editor.document);
+      } else {
+        treeProvider.clear();
+      }
     }),
     vscode.workspace.onDidCloseTextDocument((doc) => {
       diagnostics.delete(doc.uri);
@@ -114,6 +125,11 @@ export function activate(context: vscode.ExtensionContext): void {
     vscode.commands.registerCommand("renderguard.analyzeFile", () => {
       const editor = vscode.window.activeTextEditor;
       if (editor) analyzeDocument(editor.document);
+    }),
+
+    vscode.commands.registerCommand("renderguard.refreshTree", () => {
+      const editor = vscode.window.activeTextEditor;
+      if (editor) analyzeDocument(editor.document);
     })
   );
 
@@ -146,6 +162,9 @@ function readConfig(): RenderGuardConfig {
       unstableKeys: true,
       unstableDeps: true,
       broadContext: true,
+      derivedState: true,
+      propsDrilling: true,
+      liftedState: true,
     }),
   };
 }

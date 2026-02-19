@@ -5,6 +5,9 @@ import { missingMemoDetector } from "./missingMemo";
 import { unstableKeysDetector } from "./unstableKeys";
 import { unstableDepsDetector } from "./unstableDeps";
 import { broadContextDetector } from "./broadContext";
+import { derivedStateDetector } from "./derivedState";
+import { propsDrillingDetector } from "./propsDrilling";
+import { liftedStateDetector } from "./liftedState";
 
 export const allDetectors: PatternDetector[] = [
   inlineObjectsDetector,
@@ -13,4 +16,7 @@ export const allDetectors: PatternDetector[] = [
   unstableKeysDetector,
   unstableDepsDetector,
   broadContextDetector,
+  derivedStateDetector,
+  propsDrillingDetector,
+  liftedStateDetector,
 ];
