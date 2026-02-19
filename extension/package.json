@@ -29,11 +29,8 @@
     "onLanguage:typescript",
     "onLanguage:typescriptreact"
   ],
+  "icon": "media/logo.png",
   "main": "./dist/extension.js",
-  "files": [
-    "dist",
-    "LICENSE"
-  ],
   "contributes": {
     "viewsContainers": {
       "activitybar": [
@@ -116,8 +113,9 @@
   },
   "scripts": {
     "build": "esbuild ./src/extension.ts --bundle --outfile=dist/extension.js --external:vscode --format=cjs --platform=node --sourcemap",
+    "build:prod": "esbuild ./src/extension.ts --bundle --outfile=dist/extension.js --external:vscode --format=cjs --platform=node --minify",
     "watch": "npm run build -- --watch",
-    "vscode:prepublish": "npm run build",
+    "vscode:prepublish": "cp ../assets/logo.png media/logo.png && cp ../README.md README.md && cp ../LICENSE LICENSE && npm run build:prod",
     "package": "vsce package",
     "test": "vitest run",
     "test:watch": "vitest"
