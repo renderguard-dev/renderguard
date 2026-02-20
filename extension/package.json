@@ -1,8 +1,8 @@
 {
   "name": "renderguard",
   "displayName": "RenderGuard",
-  "description": "Detect and fix unnecessary React re-renders — inline objects, missing memo, unstable deps, and more.",
-  "version": "0.1.0",
+  "description": "Surface React performance patterns worth reviewing — inline objects, unstable deps, unmemoized state, and more. Signals, not mandates.",
+  "version": "0.2.0",
   "publisher": "renderguard-dev",
   "license": "MIT",
   "repository": {

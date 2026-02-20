@@ -68,4 +68,13 @@ describe("unstableDeps detector", () => {
     const issues = detectIssues(unstableDepsDetector, code);
     expect(issues).toHaveLength(2);
   });
+
+  it("provides a fix to add dependency array for missing deps", () => {
+    const code = `const A = () => { const v = useMemo(() => 1); return <div>{v}</div>; };`;
+    const issues = detectIssues(unstableDepsDetector, code);
+    expect(issues).toHaveLength(1);
+    expect(issues[0].fix).toBeDefined();
+    expect(issues[0].fix!.title).toContain("Add dependency array");
+    expect(issues[0].fix!.replacement).toContain("[/* deps */]");
+  });
 });

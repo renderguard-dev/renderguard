@@ -17,7 +17,7 @@ const HOOKS_WITH_DEPS = new Set(["useMemo", "useCallback", "useEffect", "useLayo
 export const unstableDepsDetector: PatternDetector = {
   id: "unstableDeps",
 
-  detect(ast, _document) {
+  detect(ast, document) {
     const issues: RenderIssue[] = [];
 
     traverse(ast, {
@@ -40,7 +40,6 @@ export const unstableDepsDetector: PatternDetector = {
 
         const args = path.node.arguments;
 
-        // Check for missing dependency array (useMemo/useCallback require it)
         if (
           (hookName === "useMemo" || hookName === "useCallback") &&
           args.length < 2
@@ -48,16 +47,30 @@ export const unstableDepsDetector: PatternDetector = {
           const loc = path.node.loc;
           if (!loc) return;
 
+          const callRange = new vscode.Range(
+            loc.start.line - 1,
+            loc.start.column,
+            loc.end.line - 1,
+            loc.end.column
+          );
+
+          const originalText = document.getText(callRange);
+          const closingParen = originalText.lastIndexOf(")");
+          const fixedText =
+            closingParen > 0
+              ? originalText.slice(0, closingParen) + ", [/* deps */])"
+              : originalText;
+
           issues.push({
             message: `${hookName} is missing its dependency array. Without it, the value is recomputed on every render, defeating the purpose of memoization.`,
-            range: new vscode.Range(
-              loc.start.line - 1,
-              loc.start.column,
-              loc.end.line - 1,
-              loc.end.column
-            ),
+            range: callRange,
             pattern: "unstableDeps",
             severity: "high",
+            fix: {
+              title: `Add dependency array to ${hookName}`,
+              replacement: fixedText,
+              range: callRange,
+            },
           });
           return;
         }

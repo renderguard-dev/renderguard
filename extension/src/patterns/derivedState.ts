@@ -33,7 +33,7 @@ const OBJECT_TRANSFORMS = new Set(["keys", "values", "entries", "fromEntries"]);
 export const derivedStateDetector: PatternDetector = {
   id: "derivedState",
 
-  detect(ast, _document) {
+  detect(ast, document) {
     const issues: RenderIssue[] = [];
 
     traverse(ast, {
@@ -50,16 +50,25 @@ export const derivedStateDetector: PatternDetector = {
         const loc = init.loc;
         if (!loc) return;
 
+        const range = new vscode.Range(
+          loc.start.line - 1,
+          loc.start.column,
+          loc.end.line - 1,
+          loc.end.column
+        );
+
+        const originalText = document.getText(range);
+
         issues.push({
-          message: `Derived value computed via ${match} without useMemo. This recalculates on every render. Wrap in useMemo with appropriate dependencies.`,
-          range: new vscode.Range(
-            loc.start.line - 1,
-            loc.start.column,
-            loc.end.line - 1,
-            loc.end.column
-          ),
+          message: `Derived value computed via ${match} recalculates on every render. Consider useMemo if the dataset is large or the computation is expensive.`,
+          range,
           pattern: "derivedState",
           severity: "medium",
+          fix: {
+            title: "Wrap in useMemo",
+            replacement: `useMemo(() => ${originalText}, [/* deps */])`,
+            range,
+          },
         });
       },
     });

@@ -58,7 +58,7 @@ function detectInlineProviderValues(ast: t.File, issues: RenderIssue[]): void {
           : "Context";
 
         issues.push({
-          message: `Inline object in ${contextName}.Provider value creates a new reference every render, causing all consumers to re-render. Extract to useMemo.`,
+          message: `Inline object in ${contextName}.Provider value creates a new reference every render, causing all consumers to re-render. Consider extracting to useMemo if the provider has many consumers.`,
           range: new vscode.Range(
             loc.start.line - 1,
             loc.start.column,
@@ -105,7 +105,7 @@ function detectBroadConsumers(ast: t.File, issues: RenderIssue[]): void {
       if (!loc) return;
 
       issues.push({
-        message: `Consuming entire "${contextName}" without destructuring. This component re-renders on any context change, even fields it doesn't use. Destructure only the needed values, or split into smaller contexts.`,
+        message: `Consuming entire "${contextName}" without destructuring. This component re-renders on any context change. Consider destructuring only the needed values if the context updates frequently.`,
         range: new vscode.Range(
           loc.start.line - 1,
           loc.start.column,

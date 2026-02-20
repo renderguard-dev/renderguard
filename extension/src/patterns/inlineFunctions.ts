@@ -45,7 +45,7 @@ export const inlineFunctionsDetector: PatternDetector = {
         );
 
         issues.push({
-          message: `Inline function creates a new reference on every render. Wrap with useCallback or extract to a named handler.`,
+          message: `Inline function creates a new reference on every render. This matters if the child is wrapped in React.memo — otherwise it's usually fine.`,
           range,
           pattern: "inlineFunctions",
           severity: "medium",

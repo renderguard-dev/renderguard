@@ -10,6 +10,7 @@ export class RenderGuardCodeActionProvider implements vscode.CodeActionProvider 
     this.issuesByUri.set(uri, issues);
   }
 
+
   updateSeverity(severity: vscode.DiagnosticSeverity): void {
     this.configuredSeverity = severity;
   }

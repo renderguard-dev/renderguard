@@ -51,7 +51,7 @@ export const inlineObjectsDetector: PatternDetector = {
         );
 
         issues.push({
-          message: `Inline ${kind} literal creates a new reference on every render. Extract to a variable or useMemo.`,
+          message: `Inline ${kind} literal creates a new reference on every render. This breaks memoization if the child component uses React.memo.`,
           range,
           pattern: "inlineObjects",
           severity: "medium",

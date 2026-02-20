@@ -106,4 +106,17 @@ describe("derivedState detector", () => {
     const issues = detectIssues(derivedStateDetector, code);
     expect(issues).toHaveLength(1);
   });
+
+  it("provides a useMemo fix for flagged issues", () => {
+    const code = `const App = (props: { items: any[] }) => {
+      const filtered = props.items.filter(i => i.active);
+      return <div />;
+    };`;
+    const issues = detectIssues(derivedStateDetector, code);
+    expect(issues).toHaveLength(1);
+    expect(issues[0].fix).toBeDefined();
+    expect(issues[0].fix!.title).toContain("useMemo");
+    expect(issues[0].fix!.replacement).toContain("useMemo(() =>");
+    expect(issues[0].fix!.replacement).toContain(".filter(");
+  });
 });

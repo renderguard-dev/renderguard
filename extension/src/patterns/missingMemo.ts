@@ -51,7 +51,7 @@ export const missingMemoDetector: PatternDetector = {
         if (!loc) return;
 
         issues.push({
-          message: `Component "${name}" accepts props but isn't wrapped in React.memo. It will re-render whenever its parent re-renders, even with identical props.`,
+          message: `Component "${name}" is not wrapped in React.memo. Consider it if this component is expensive to render or sits in a frequently-updating tree.`,
           range: new vscode.Range(
             loc.start.line - 1,
             loc.start.column,
@@ -76,7 +76,7 @@ export const missingMemoDetector: PatternDetector = {
         if (!loc) return;
 
         issues.push({
-          message: `Component "${name}" accepts props but isn't wrapped in React.memo. It will re-render whenever its parent re-renders, even with identical props.`,
+          message: `Component "${name}" is not wrapped in React.memo. Consider it if this component is expensive to render or sits in a frequently-updating tree.`,
           range: new vscode.Range(
             loc.start.line - 1,
             loc.start.column,

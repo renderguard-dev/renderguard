@@ -3,10 +3,10 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>RenderGuard — Detect and fix unnecessary React re-renders</title>
-  <meta name="description" content="RenderGuard is a VS Code extension that statically analyzes your React codebase and flags components at risk of unnecessary re-renders. No runtime profiling, no manual setup.">
-  <meta property="og:title" content="RenderGuard — Catch React re-render issues at dev time">
-  <meta property="og:description" content="Static analysis for React performance. 9 pattern detectors, inline diagnostics, quick fixes, and a component tree sidebar.">
+  <title>RenderGuard — Surface React performance patterns worth reviewing</title>
+  <meta name="description" content="RenderGuard is a VS Code extension that surfaces React performance patterns worth reviewing. Not every re-render is a problem — RenderGuard helps you find the ones that are.">
+  <meta property="og:title" content="RenderGuard — React performance patterns, surfaced for review">
+  <meta property="og:description" content="Static analysis for React. 9 pattern detectors that highlight what's worth optimizing — you decide what to act on.">
   <meta property="og:type" content="website">
   <link rel="icon" href="logo.png" type="image/png">
   <style>
@@ -583,11 +583,11 @@
     <div class="container">
       <div class="hero-badge">Now available on the VS Code Marketplace</div>
       <h1>
-        Detect and fix<br>
-        <span class="gradient-text">unnecessary React re-renders</span><br>
-        before they ship.
+        Surface<br>
+        <span class="gradient-text">React performance patterns</span><br>
+        worth reviewing.
       </h1>
-      <p>Static analysis for React performance. 9 pattern detectors, inline diagnostics, quick fixes, and a component tree sidebar — right in your editor.</p>
+      <p>Not every re-render is a problem. RenderGuard highlights patterns that <em>can</em> cause performance issues — you decide what's worth optimizing. 9 detectors, inline hints, and quick fixes, right in your editor.</p>
       <div class="hero-buttons">
         <a href="https://marketplace.visualstudio.com/items?itemName=renderguard-dev.renderguard" class="btn btn-primary" target="_blank" rel="noopener">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
@@ -608,7 +608,7 @@
         </div>
         <pre><span class="kw">const</span> <span class="comp">UserList</span> = ({ users }) =&gt; {
   <span class="kw">const</span> sorted = <span class="squiggly">users.<span class="fn">sort</span>((a, b) =&gt; a.name.<span class="fn">localeCompare</span>(b.name))</span>;
-  <span class="cm">         ⚠ Unmemoized derived state — wrap in useMemo</span>
+  <span class="cm">         ⚠ Unmemoized sort — consider useMemo for large datasets</span>
 
   <span class="kw">return</span> (
     &lt;<span class="comp">div</span>&gt;
@@ -617,7 +617,7 @@
         &lt;<span class="comp">UserCard</span>
           <span class="attr">key</span>={index}
           <span class="attr">onClick</span>={<span class="squiggly">() =&gt; <span class="fn">selectUser</span>(user.id)</span>}
-          <span class="cm">         ⚠ Inline function — wrap in useCallback</span>
+          <span class="cm">         ⚠ Inline function — matters if UserCard uses React.memo</span>
         /&gt;
       ))}
     &lt;/<span class="comp">div</span>&gt;
@@ -630,25 +630,25 @@
   <!-- Problem -->
   <section id="problem" class="fade-in">
     <div class="container">
-      <div class="section-label">The Problem</div>
-      <h2 class="section-title">Re-renders are the #1 React performance killer</h2>
-      <p class="section-subtitle">Existing tools only catch them at runtime. RenderGuard catches them at development time.</p>
+      <div class="section-label">The Challenge</div>
+      <h2 class="section-title">Not every re-render is a problem. But some are.</h2>
+      <p class="section-subtitle">React is designed to re-render. Most re-renders are cheap. The hard part is knowing which ones actually matter.</p>
 
       <div class="problem-grid">
         <div class="problem-card">
           <div class="icon">&#9889;</div>
-          <h3>Easy to introduce</h3>
-          <p>An inline object, a missing dependency array, an arrow function in JSX — one line is all it takes to trigger cascading re-renders.</p>
+          <h3>Render vs. commit</h3>
+          <p>React can call your component, diff the output, and skip the DOM commit entirely. A re-render doesn't always mean a costly update. The key is knowing when it does.</p>
         </div>
         <div class="problem-card">
           <div class="icon">&#128269;</div>
-          <h3>Hard to spot in review</h3>
-          <p>Performance anti-patterns look like normal code. They slip through PRs because they're syntactically correct and functionally fine.</p>
+          <h3>Optimization has a cost</h3>
+          <p>useMemo and useCallback aren't free. For cheap operations, the memoization overhead can exceed the cost of just re-computing. RenderGuard helps you find the patterns worth optimizing.</p>
         </div>
         <div class="problem-card">
           <div class="icon">&#128295;</div>
-          <h3>Painful to debug at runtime</h3>
-          <p>React DevTools Profiler and <code>why-did-you-render</code> require running the app, reproducing the issue, and tracing through component trees.</p>
+          <h3>Hard to spot what matters</h3>
+          <p>Performance patterns look like normal code. They're invisible in review because they're syntactically correct. You need static analysis to surface them for consideration.</p>
         </div>
       </div>
     </div>
@@ -658,34 +658,34 @@
   <section id="features" class="fade-in">
     <div class="container">
       <div class="section-label">Features</div>
-      <h2 class="section-title">Everything you need, built into your editor</h2>
-      <p class="section-subtitle">No browser extensions, no runtime overhead, no configuration required.</p>
+      <h2 class="section-title">Signals, not mandates</h2>
+      <p class="section-subtitle">RenderGuard surfaces patterns for review. You decide what to act on.</p>
 
       <div class="features-grid">
         <div class="feature-card">
           <span class="feature-icon">&#9888;&#65039;</span>
-          <h3>Inline Diagnostics</h3>
-          <p>Squiggly underlines on every detected issue, just like a linter. Hover for details and suggested fixes.</p>
+          <h3>Inline Hints</h3>
+          <p>Subtle annotations on detected patterns. Hover for context on when it matters and when you can safely ignore it.</p>
         </div>
         <div class="feature-card">
           <span class="feature-icon">&#128200;</span>
-          <h3>CodeLens Risk Scores</h3>
-          <p>Render risk scores displayed above each component — Low, Medium, or High — so you know where to focus.</p>
+          <h3>Pattern Density Scores</h3>
+          <p>See which components have the most patterns worth reviewing — so you know where to focus when optimizing.</p>
         </div>
         <div class="feature-card">
           <span class="feature-icon">&#9889;</span>
           <h3>Quick Fixes</h3>
-          <p>One-click wrapping with useMemo and useCallback via Code Actions. Fix issues without leaving your flow.</p>
+          <p>One-click useMemo/useCallback wrapping when you decide a pattern is worth optimizing. You choose, one at a time.</p>
         </div>
         <div class="feature-card">
           <span class="feature-icon">&#127795;</span>
           <h3>Component Tree Sidebar</h3>
-          <p>Activity bar panel showing all components in the file, color-coded by risk, with expandable issue lists.</p>
+          <p>Activity bar panel showing all components in the file, grouped by pattern density, with expandable details.</p>
         </div>
         <div class="feature-card">
           <span class="feature-icon">&#9881;&#65039;</span>
           <h3>Fully Configurable</h3>
-          <p>Enable or disable individual pattern detectors. Set severity to error, warning, info, or hint.</p>
+          <p>Disagree with a detector? Disable it. Want gentle nudges? Set severity to "hint". Tailor it to your team's philosophy.</p>
         </div>
         <div class="feature-card">
           <span class="feature-icon">&#128640;</span>
@@ -700,8 +700,8 @@
   <section id="detectors" class="fade-in">
     <div class="container">
       <div class="section-label">9 Pattern Detectors</div>
-      <h2 class="section-title">Catches what code review misses</h2>
-      <p class="section-subtitle">Two tiers of analysis — from per-statement checks to data flow analysis across components.</p>
+      <h2 class="section-title">Surfaces what code review misses</h2>
+      <p class="section-subtitle">Each detection is a signal, not a mandate. Two tiers of analysis — from per-statement checks to data flow across components.</p>
 
       <div class="detectors-tier">
         <div class="tier-label">Tier 1 — Per-Statement Analysis</div>
@@ -710,7 +710,7 @@
           <div class="detector-card">
             <h4>Inline Objects &amp; Arrays</h4>
             <div class="detector-code">
-              <pre><span class="cm">// Flagged: new reference every render</span>
+              <pre><span class="cm">// Flagged: new ref — matters if Child uses React.memo</span>
 &lt;<span class="comp">Child</span> <span class="attr">style</span>={<span class="bad">{ color: 'red' }</span>} /&gt;
 
 <span class="cm">// Safe</span>
@@ -722,7 +722,7 @@
           <div class="detector-card">
             <h4>Inline Functions</h4>
             <div class="detector-code">
-              <pre><span class="cm">// Flagged: new function every render</span>
+              <pre><span class="cm">// Flagged: new ref — often fine for leaf components</span>
 &lt;<span class="comp">Button</span> <span class="attr">onClick</span>={<span class="bad">() =&gt; handleClick(id)</span>} /&gt;
 
 <span class="cm">// Safe</span>
@@ -734,7 +734,7 @@
           <div class="detector-card">
             <h4>Missing React.memo</h4>
             <div class="detector-code">
-              <pre><span class="cm">// Flagged: re-renders when parent does</span>
+              <pre><span class="cm">// Flagged: consider memo for expensive components</span>
 <span class="kw">const</span> <span class="comp">UserCard</span> = (<span class="bad">props</span>) =&gt; {
   <span class="kw">return</span> &lt;<span class="comp">span</span>&gt;{props.name}&lt;/<span class="comp">span</span>&gt;;
 };
@@ -789,7 +789,7 @@ items.<span class="fn">map</span>((item) =&gt; &lt;<span class="comp">Item</span
           <div class="detector-card">
             <h4>Unmemoized Derived State</h4>
             <div class="detector-code">
-              <pre><span class="cm">// Flagged: recalculates every render</span>
+              <pre><span class="cm">// Flagged: costly with large datasets</span>
 <span class="kw">const</span> filtered = <span class="bad">items.<span class="fn">filter</span>(i =&gt; i.active)</span>;
 
 <span class="cm">// Safe</span>

@@ -130,7 +130,8 @@ export function activate(context: vscode.ExtensionContext): void {
     vscode.commands.registerCommand("renderguard.refreshTree", () => {
       const editor = vscode.window.activeTextEditor;
       if (editor) analyzeDocument(editor.document);
-    })
+    }),
+
   );
 
   // Analyze already-open documents on activation

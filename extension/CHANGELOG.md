@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.2.0
+
+- Repositioned as a detection tool: "signals, not mandates"
+- Detector messages now explain *when* a pattern matters, not just that it exists
+- Added quick fixes to `derivedState` (wrap in useMemo) and `unstableDeps` (add dependency array)
+- Updated marketplace description, README, and website copy
+- Removed batch "Fix All" command to align with review-first philosophy
+
 ## 0.1.0 — Initial Release
 
 - 9 pattern detectors across two tiers
