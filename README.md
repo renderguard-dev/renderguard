@@ -138,7 +138,7 @@ const Parent = () => {
 
 ### From Marketplace
 
-Search for **"RenderGuard"** in the VS Code / Cursor extensions panel, or visit the [Marketplace listing](https://marketplace.visualstudio.com/items?itemName=renderguard-dev.renderguard).
+Search for **"RenderGuard"** in the VS Code / Cursor extensions panel, or visit the [Marketplace listing](https://marketplace.visualstudio.com/items?itemName=renderguard-dev.renderguard). For Cursor, you can also install from [Open VSX](https://open-vsx.org/extension/renderguard-dev/renderguard).
 
 ### From Source (Development)
 
